@@ -32,6 +32,7 @@ jobs:
 
     - name: Deploy to Azure Container Apps
       run: |
+        az login
         az containerapp env create \
         --name $ENVIRONMENT \
         --resource-group $AZURE_RESOURCE_GROUP \
