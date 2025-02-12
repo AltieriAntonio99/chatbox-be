@@ -30,33 +30,32 @@ jobs:
         docker build -t $BACKEND_IMAGE .
         docker push $BACKEND_IMAGE
 
-    - name: Deploy to Azure Container Apps
-      run: |
-        az login
-        az containerapp env create \
-        --name $ENVIRONMENT \
-        --resource-group $AZURE_RESOURCE_GROUP \
-        --location $AZURE_REGION || true
+    # - name: Deploy to Azure Container Apps
+    #   run: |
+    #     az containerapp env create \
+    #     --name $ENVIRONMENT \
+    #     --resource-group $AZURE_RESOURCE_GROUP \
+    #     --location $AZURE_REGION || true
 
-        az containerapp create \
-        --name $BACKEND_NAME \
-        --resource-group $AZURE_RESOURCE_GROUP \
-        --environment $ENVIRONMENT \
-        --image $BACKEND_IMAGE \
-        --target-port 4000 \
-        --ingress internal \
-        --registry-server $AZURE_CONTAINER_REGISTRY.azurecr.io \
-        --query properties.configuration.ingress.fqdn
+    #     az containerapp create \
+    #     --name $BACKEND_NAME \
+    #     --resource-group $AZURE_RESOURCE_GROUP \
+    #     --environment $ENVIRONMENT \
+    #     --image $BACKEND_IMAGE \
+    #     --target-port 4000 \
+    #     --ingress internal \
+    #     --registry-server $AZURE_CONTAINER_REGISTRY.azurecr.io \
+    #     --query properties.configuration.ingress.fqdn
 
-    - name: Auto-scaling
-      run: |
-        az containerapp revision-stable-set \
-        --name $FRONTEND_NAME \
-        --resource-group $AZURE_RESOURCE_GROUP \
-        --min-replicas 1 \
-        --max-replicas 5 \
-        --scale-rule-type http \
-        --scale-rule-name frontend-scaling \
-        --concurrent-requests 50
+    # - name: Auto-scaling
+    #   run: |
+    #     az containerapp revision-stable-set \
+    #     --name $FRONTEND_NAME \
+    #     --resource-group $AZURE_RESOURCE_GROUP \
+    #     --min-replicas 1 \
+    #     --max-replicas 5 \
+    #     --scale-rule-type http \
+    #     --scale-rule-name frontend-scaling \
+    #     --concurrent-requests 50
 
 
