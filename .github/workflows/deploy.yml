@@ -10,10 +10,8 @@ env:
   AZURE_CONTAINER_REGISTRY: "chatbotcr001"
   AZURE_REGION: "westeurope"
   ENVIRONMENT: "dev"
-
   BACKEND_NAME: "container-chatbot-be"
-  BACKEND_IMAGE_TAG: "v1.0.0"
-  BACKEND_IMAGE: "$AZURE_CONTAINER_REGISTRY.azurecr.io/$BACKEND_NAME:$BACKEND_IMAGE_TAG"
+  BACKEND_IMAGE: "chatbotcr001.azurecr.io/container-chatbot-be:v1.0.0"
 
 jobs:
   build-and-deploy:
