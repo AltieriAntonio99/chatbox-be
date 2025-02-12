@@ -1,4 +1,11 @@
+name: Build and Deploy to Azure Container Apps
+
 image: docker:latest
+
+on:
+  push:
+    branches:
+      - main
 
 variables:
   AZURE_RESOURCE_GROUP: "ChatBot"
