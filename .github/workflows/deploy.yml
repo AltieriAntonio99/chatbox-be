@@ -5,7 +5,7 @@ on:
     branches:
       - main
 
-variables:
+env:
   AZURE_RESOURCE_GROUP: "ChatBot"
   AZURE_CONTAINER_REGISTRY: "chatbotcr001"
   AZURE_REGION: "westeurope"
