@@ -1,27 +1,75 @@
-name: Build and Deploy to Azure Container Apps
+image: docker:latest
 
-on:
-  push:
-    branches:
-      - main
+variables:
+  AZURE_RESOURCE_GROUP: "ChatBot"
+  AZURE_CONTAINER_REGISTRY: "chatbotcr001"
+  AZURE_CONTAINER_NAME: "container-chatbot-be"
+  IMAGE_TAG: "v1.0.0"
+  DOCKER_IMAGE: "$AZURE_CONTAINER_REGISTRY.azurecr.io/$AZURE_CONTAINER_NAME:$IMAGE_TAG"
+  AZURE_REGION: "westeurope"
+  ENVIRONMENT: "dev"
 
-jobs:
-  build-and-deploy:
-    runs-on: ubuntu-latest
+stages:
+  - build
+  - push
+  - deploy
 
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
+before_script:
+  - apk add --no-cache bash curl jq
+  - echo "Logging into Azure..."
+  - echo "${{ secrets.ACR_PASSWORD }}"
+  - docker login chatbotcr001.azurecr.io -u "${{ secrets.ACR_USERNAME }}" --password-stdin
 
-    - name: Login to Azure Container Registry
-      run: |
-        echo "${{ secrets.ACR_PASSWORD }}" | docker login chatbotcr001.azurecr.io -u "${{ secrets.ACR_USERNAME }}" --password-stdin
+build:
+  stage: build
+  script:
+    - echo "Building Docker image..."
+    - docker build -t $DOCKER_IMAGE .
+    - docker tag $DOCKER_IMAGE $DOCKER_IMAGE
+  only:
+    - main
 
-    - name: Build and push Docker image
-      run: |
-        docker build -t chatbotcr001.azurecr.io/chatbot-be:v1.0.3 .
-        docker push chatbotcr001.azurecr.io/chatbot-be:v1.0.3
+push:
+  stage: push
+  script:
+    - echo "Pushing Docker image to ACR..."
+    - docker push $DOCKER_IMAGE
+  only:
+    - main
 
-    - name: Deploy to Azure Container Apps
-      run: |
-        az containerapp update --name chatbotcapp001 --resource-group ChatBot --image chatbotcr001.azurecr.io/chatbot-be:v1.0.3
+deploy:
+  stage: deploy
+  script:
+    - echo "Creating Azure Container Apps environment..."
+    - az containerapp env create \
+        --name $ENVIRONMENT \
+        --resource-group $AZURE_RESOURCE_GROUP \
+        --location $AZURE_REGION || true
+
+    - echo "Deploying to Azure Container Apps..."
+    - az containerapp create \
+        --name $AZURE_CONTAINER_NAME \
+        --resource-group $AZURE_RESOURCE_GROUP \
+        --environment $ENVIRONMENT \
+        --image $DOCKER_IMAGE \
+        --target-port 3000 \
+        --ingress external \
+        --registry-server $AZURE_CONTAINER_REGISTRY.azurecr.io \
+        --query properties.configuration.ingress.fqdn
+  only:
+    - main
+
+autoscale:
+  stage: deploy
+  script:
+    - echo "Configuring auto-scaling..."
+    - az containerapp revision-stable-set \
+        --name $AZURE_CONTAINER_NAME \
+        --resource-group $AZURE_RESOURCE_GROUP \
+        --min-replicas 0 \
+        --max-replicas 5 \
+        --scale-rule-type http \
+        --scale-rule-name http-scaling \
+        --concurrent-requests 50
+  only:
+    - main
